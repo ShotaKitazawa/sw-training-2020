@@ -1,0 +1,31 @@
+version: "3.8"
+services:
+  apache:
+    image: httpd:2.4
+    ports:
+      - 80:80
+    volumes:
+      - /var/www/html:/usr/local/apache2/htdocs/
+    restart: always
+  app:
+    image: gcr.io/sys0098096-1-16002614/caas-38-app:v1
+    environment:
+      - DB_HOSTNAME=mysql
+      - DB_USERNAME=ncom
+      - DB_PASSWORD=ncom0033
+    depends_on:
+      - mysql
+    ports:
+      - 9200:9200
+    restart: always
+  mysql:
+    image: mysql:5.7
+    ports:
+      - 127.0.0.1:3306:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=ncom0033
+      - MYSQL_USER=ncom
+      - MYSQL_PASSWORD=ncom0033
+      - MYSQL_DATABASE=tododb
+    restart: always
+

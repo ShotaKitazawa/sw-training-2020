@@ -1,0 +1,94 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: 38-kanata
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+    spec:
+      initContainers:
+        - name: rm-lost-found
+          image: debian:stable-slim
+          command: ["rm", "-rf", "/mnt/lost+found"]
+          volumeMounts:
+          - name: database
+            mountPath: /mnt/
+      containers:
+        - name: apache
+          #image: gcr.io/sys0098096-1-16002614/caas-38-httpd:2.4
+          image: httpd:2.4
+          ports:
+            - containerPort: 80
+        - name: app
+          image: gcr.io/sys0098096-1-16002614/caas-38-app:v1
+          ports:
+            - containerPort: 9200
+          env:
+            - name: DB_HOSTNAME
+              value: localhost
+            - name: DB_USERNAME
+              value: ncom
+            - name: DB_PASSWORD
+              value: ncom0033
+        - name: mysql
+          image: mysql:5.7
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+          - name: database
+            mountPath: /var/lib/mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: ncom0033!!!
+            - name: MYSQL_USER
+              value: ncom
+            - name: MYSQL_PASSWORD
+              value: ncom0033
+            - name: MYSQL_DATABASE
+              value: tododb
+      volumes:
+      - name: database
+        persistentVolumeClaim:
+          claimName: caas-38-disk
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: app
+  namespace: 38-kanata
+spec:
+  type: LoadBalancer
+  selector:
+    app: app
+  ports:
+    - name: gui
+      protocol: TCP
+      port: 80
+      targetPort: 80
+    - name: api
+      protocol: TCP
+      port: 9200
+      targetPort: 9200
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: caas-38-disk
+  namespace: 38-kanata
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
